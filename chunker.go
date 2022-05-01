@@ -2,6 +2,7 @@ package chunker
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 )
@@ -11,7 +12,7 @@ const (
 	miB = 1024 * kiB
 
 	// WindowSize is the size of the sliding window.
-	windowSize = 64
+	windowSize = 512
 
 	// MinSize is the default minimal size of a chunk.
 	MinSize = 512 * kiB
@@ -312,6 +313,7 @@ func (c *Chunker) Next(data []byte) (Chunk, error) {
 				if add < minSize {
 					continue
 				}
+				fmt.Printf("split: %x: %d\n", digest, add)
 
 				i := add - c.count - 1
 				data = append(data, c.buf[c.bpos:c.bpos+uint(i)+1]...)

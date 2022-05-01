@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"io"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 )
@@ -190,6 +191,37 @@ func TestChunker(t *testing.T) {
 	ch = New(bytes.NewReader(buf), testPol)
 
 	testWithData(t, ch, chunks2, true)
+}
+
+func TestDistribution(t *testing.T) {
+	f, err := os.Open("/home/rbtz/tmp/linux-v5.15.tar")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ch := NewWithBoundaries(f, testPol, windowSize+1, 1024*1024)
+	// 128 byte chunks on average
+	ch.SetAverageBits(12)
+
+	totalChunkLength := uint64(0)
+	totalChunks := uint64(0)
+	for {
+		c, err := ch.Next(nil)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			t.Fatal(err)
+		}
+		totalChunks++
+		totalChunkLength += uint64(c.Length)
+	}
+
+	avgChunkSz := totalChunkLength / totalChunks
+	if avgChunkSz <= 100 || avgChunkSz >= 160 {
+		t.Errorf("Average chunk size is wrong: %d, len: %d, num: %d", avgChunkSz, totalChunkLength, totalChunks)
+		t.Fail()
+	}
 }
 
 func TestChunkerWithCustomAverageBits(t *testing.T) {
